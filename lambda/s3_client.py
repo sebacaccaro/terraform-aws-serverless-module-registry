@@ -108,4 +108,3 @@ def has_local_versions(bucket, prefix):
     client = _get_client()
     resp = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1)
     return resp.get("KeyCount", 0) > 0
-

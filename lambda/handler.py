@@ -145,6 +145,7 @@ def upload_version(event, params):
         "version": params["version"],
     })
 
+
 def cache_version(event, params):
     """POST /v1/pins/{namespace}/{name}/{system}/{version}"""
     _validate_module_params(params)
