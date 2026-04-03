@@ -14,8 +14,8 @@ from hypothesis import strategies as st
 # Helpers
 # ---------------------------------------------------------------------------
 
-MODULE_DIR = os.path.join(os.path.dirname(__file__), "..", "modules", "portal-registry")
-MAIN_TF = os.path.join(MODULE_DIR, "main.tf")
+ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
+MAIN_TF = os.path.join(ROOT_DIR, "main.tf")
 
 
 def _parse_main_tf():
@@ -111,7 +111,7 @@ def test_property1_custom_domain_resource_references_input_variables(
 # Helpers for variables.tf parsing
 # ---------------------------------------------------------------------------
 
-VARIABLES_TF = os.path.join(MODULE_DIR, "variables.tf")
+VARIABLES_TF = os.path.join(ROOT_DIR, "variables.tf")
 
 
 def _parse_variables_tf():
@@ -138,7 +138,7 @@ PRE_EXISTING_VARIABLES = {
     "proxy_deny_list": {"type": "${list(string)}", "default": []},
     "s3_bucket_name": {"type": "string", "default": ""},
     "token_table_name": {"type": "string", "default": "portal-tokens"},
-    "master_token_secret_name": {"type": "string", "default": "portal-master-token"},
+    "master_token_secret_name": {"type": "string", "default": "prtl-master-token"},
 }
 
 
@@ -187,7 +187,7 @@ def test_property2_existing_input_variables_are_preserved(var_name: str):
 # Helpers for outputs.tf parsing
 # ---------------------------------------------------------------------------
 
-OUTPUTS_TF = os.path.join(MODULE_DIR, "outputs.tf")
+OUTPUTS_TF = os.path.join(ROOT_DIR, "outputs.tf")
 
 
 def _parse_outputs_tf():
