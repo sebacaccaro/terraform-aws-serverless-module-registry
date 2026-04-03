@@ -1,5 +1,10 @@
 # Portal — A private, fully serverless Terraform registry on AWS
 
+[![CI](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/ci.yml)
+[![Release](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/release.yml/badge.svg)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/release.yml)
+[![GitHub release](https://img.shields.io/github/v/release/sebacaccaro/portal_private_aws_serverless_terraform_module_registry?sort=semver)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/releases/latest)
+[![License](https://img.shields.io/github/license/sebacaccaro/portal_private_aws_serverless_terraform_module_registry)](LICENSE)
+
 A private, fully serverless Terraform module registry for AWS. Portal lets you host, distribute, and manage Terraform modules behind your own domain with token-based authentication. It can also proxy requests to the public Terraform Registry and pin specific module versions locally for reproducible, air-gap-friendly builds.
 
 ## ✨ Features
@@ -26,73 +31,11 @@ module "portal" {
   source = "your-registry/portal/aws"
 
   domain_name     = "registry.example.com"
-  certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/example-cert-id"
+  certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 }
 ```
 
 After applying, create a DNS CNAME or alias record pointing your `domain_name` to the `custom_domain_regional_domain_name` output.
-
-
-### Optional: Route 53 DNS and ACM Certificate
-
-If you manage your DNS in Route 53, you can provision the ACM certificate and DNS records alongside the module instead of creating them separately. This is entirely optional — you can use any DNS provider and supply a pre-existing certificate ARN.
-
-```hcl
-data "aws_route53_zone" "main" {
-  name = "example.com"
-}
-
-resource "aws_acm_certificate" "registry" {
-  domain_name       = "registry.example.com"
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_record" "cert_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.registry.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      record = dvo.resource_record_value
-    }
-  }
-
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  ttl     = 60
-  records = [each.value.record]
-}
-
-resource "aws_acm_certificate_validation" "registry" {
-  certificate_arn         = aws_acm_certificate.registry.arn
-  validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
-}
-
-module "portal" {
-  source = "your-registry/portal/aws"
-
-  domain_name     = "registry.example.com"
-  certificate_arn = aws_acm_certificate_validation.registry.certificate_arn
-}
-
-resource "aws_route53_record" "registry" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "registry.example.com"
-  type    = "A"
-
-  alias {
-    name                   = module.portal.custom_domain_regional_domain_name
-    zone_id                = module.portal.custom_domain_regional_zone_id
-    evaluate_target_health = false
-  }
-}
-```
-
-This creates the ACM certificate with DNS validation, waits for validation to complete, passes the validated certificate to Portal, and points the domain at the API Gateway custom domain via a Route 53 alias record.
 
 
 ## 📖 Use Cases
