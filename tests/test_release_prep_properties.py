@@ -1,5 +1,5 @@
 """
-Property-based tests for the Portal API logic.
+Property-based tests for the SE Registry API logic.
 
 Tests the proxy allow/deny list evaluation and input validation regex patterns.
 """

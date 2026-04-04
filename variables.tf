@@ -19,7 +19,7 @@ variable "certificate_arn" {
 }
 
 variable "proxy_enabled" {
-  description = "Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly to Portal are served."
+  description = "Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly are served."
   type        = bool
   default     = false
 }
@@ -37,19 +37,19 @@ variable "proxy_deny_list" {
 }
 
 variable "s3_bucket_name" {
-  description = "Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named portal-modules-{account_id} using the current AWS account ID."
+  description = "Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named se-registry-modules-{account_id} using the current AWS account ID."
   type        = string
   default     = ""
 }
 
 variable "token_table_name" {
-  description = "Name of the DynamoDB table for storing API tokens. Defaults to portal-tokens. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account."
+  description = "Name of the DynamoDB table for storing API tokens. Defaults to se-registry-tokens. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account."
   type        = string
-  default     = "portal-tokens"
+  default     = "se-registry-tokens"
 }
 
 variable "master_token_secret_name" {
-  description = "Name of the Secrets Manager secret for the master token. Defaults to prtl-master-token. The master token is used for administrative operations such as creating and revoking API tokens."
+  description = "Name of the Secrets Manager secret for the master token. Defaults to se-registry-master-token. The master token is used for administrative operations such as creating and revoking API tokens."
   type        = string
-  default     = "prtl-master-token"
+  default     = "se-registry-master-token"
 }

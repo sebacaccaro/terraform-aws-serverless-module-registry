@@ -19,7 +19,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-module "portal" {
+module "registry" {
   source = "../.."
 
   domain_name     = "registry.example.com"

@@ -1,4 +1,4 @@
-"""Generate an OpenAPI 3.0 specification for the Portal Registry API.
+"""Generate an OpenAPI 3.0 specification for the SE Registry API.
 
 Builds the spec programmatically from the same source of truth as the API
 itself (handler ROUTES table and validator patterns), then writes it as JSON.
@@ -404,12 +404,12 @@ def build_openapi_spec():
     """Build the complete OpenAPI 3.0 specification as a Python dict.
 
     Returns:
-        dict: A valid OpenAPI 3.0.3 document describing the Portal Registry API.
+        dict: A valid OpenAPI 3.0.3 document describing the SE Registry API.
     """
     spec = {
         "openapi": "3.0.3",
         "info": {
-            "title": "Portal Registry API",
+            "title": "SE Registry API",
             "description": "Terraform Module Registry API",
             "version": "",  # placeholder, filled with content hash below
         },
@@ -437,7 +437,7 @@ def build_openapi_spec():
 def main():
     """Serialize the OpenAPI spec to JSON and write it to disk."""
     parser = argparse.ArgumentParser(
-        description="Generate the Portal Registry OpenAPI specification."
+        description="Generate the SE Registry OpenAPI specification."
     )
     parser.add_argument(
         "-o",

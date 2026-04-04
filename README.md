@@ -1,11 +1,11 @@
-# Portal — A private, fully serverless Terraform registry on AWS
+# AWS Serverless Terraform Module Registry
 
-[![CI](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/ci.yml)
-[![Release](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/release.yml/badge.svg)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/actions/workflows/release.yml)
-[![GitHub release](https://img.shields.io/github/v/release/sebacaccaro/portal_private_aws_serverless_terraform_module_registry?sort=semver)](https://github.com/sebacaccaro/portal_private_aws_serverless_terraform_module_registry/releases/latest)
-[![License](https://img.shields.io/github/license/sebacaccaro/portal_private_aws_serverless_terraform_module_registry)](LICENSE)
+[![CI](https://github.com/sebacaccaro/terraform-aws-serverless-module-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sebacaccaro/terraform-aws-serverless-module-registry/actions/workflows/ci.yml)
+[![Release](https://github.com/sebacaccaro/terraform-aws-serverless-module-registry/actions/workflows/release.yml/badge.svg)](https://github.com/sebacaccaro/terraform-aws-serverless-module-registry/actions/workflows/release.yml)
+[![GitHub release](https://img.shields.io/github/v/release/sebacaccaro/terraform-aws-serverless-module-registry?sort=semver)](https://github.com/sebacaccaro/terraform-aws-serverless-module-registry/releases/latest)
+[![License](https://img.shields.io/github/license/sebacaccaro/terraform-aws-serverless-module-registry)](LICENSE)
 
-A private, fully serverless Terraform module registry for AWS. Portal lets you host, distribute, and manage Terraform modules behind your own domain with token-based authentication. It can also proxy requests to the public Terraform Registry and pin specific module versions locally for reproducible, air-gap-friendly builds.
+A private, fully serverless Terraform module registry for AWS. It lets you host, distribute, and manage Terraform modules behind your own domain with token-based authentication. It can also proxy requests to the public Terraform Registry and pin specific module versions locally for reproducible, air-gap-friendly builds.
 
 ## ✨ Features
 
@@ -27,8 +27,8 @@ A private, fully serverless Terraform module registry for AWS. Portal lets you h
 ## 🚀 Usage
 
 ```hcl
-module "portal" {
-  source = "your-registry/portal/aws"
+module "registry" {
+  source = "your-registry/se-registry/aws"
 
   domain_name     = "registry.example.com"
   certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
@@ -44,7 +44,7 @@ After applying, create a DNS CNAME or alias record pointing your `domain_name` t
 
 #### Configuring Terraform CLI Credentials
 
-To authenticate Terraform CLI with your Portal registry, add a credentials block to your `~/.terraformrc` (Linux/macOS) or `%APPDATA%/terraform.rc` (Windows) file:
+To authenticate Terraform CLI with your registry, add a credentials block to your `~/.terraformrc` (Linux/macOS) or `%APPDATA%/terraform.rc` (Windows) file:
 
 ```hcl
 credentials "registry.example.com" {
@@ -52,7 +52,7 @@ credentials "registry.example.com" {
 }
 ```
 
-Replace `registry.example.com` with your Portal custom domain and `your-api-token` with a valid downloader or uploader token.
+Replace `registry.example.com` with your custom domain and `your-api-token` with a valid downloader or uploader token.
 
 #### Uploading a Module
 
@@ -70,7 +70,7 @@ The module path follows the format `{namespace}/{name}/{system}/{version}` where
 
 #### Referencing a Private Module
 
-Use your Portal custom domain as the module source in Terraform configurations:
+Use your custom domain as the module source in Terraform configurations:
 
 ```hcl
 module "vpc" {
@@ -83,7 +83,7 @@ Terraform CLI uses the `/.well-known/terraform.json` service discovery endpoint 
 
 #### Token Permission Model
 
-Portal uses three token permission levels:
+The registry uses three token permission levels:
 
 | Token Type   | Upload Modules | Download Modules | Manage Tokens |
 |-------------|:-:|:-:|:-:|
@@ -108,16 +108,16 @@ curl -X POST \
 
 ### 🔀 Proxy Mode
 
-Portal can transparently proxy module download requests to the public Terraform Registry when a module is not found locally. This lets you use your private registry as a single source for both private and public modules.
+The registry can transparently proxy module download requests to the public Terraform Registry when a module is not found locally. This lets you use your private registry as a single source for both private and public modules.
 
 Enable proxy mode by setting `proxy_enabled = true`:
 
 ```hcl
-module "portal" {
-  source = "your-registry/portal/aws"
+module "registry" {
+  source = "your-registry/se-registry/aws"
 
   domain_name     = "registry.example.com"
-  certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/example-cert-id"
+  certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
   proxy_enabled = true
 }
@@ -150,7 +150,7 @@ This blocks proxying for any module under the `internal` namespace and the speci
 
 When proxy mode is enabled, module downloads are forwarded to the public Terraform Registry on every request. That means your `terraform apply` depends on the public registry being available and serving the same artifact every time. Module pinning removes that dependency.
 
-Pinning a module version downloads the archive from the public registry once and stores it in your Portal S3 bucket. From that point on, Portal serves the local copy directly — it stops proxying that module version entirely. Your Terraform runs use the exact artifact you pinned, regardless of whether the public registry is available or whether the upstream maintainer has yanked or replaced the release.
+Pinning a module version downloads the archive from the public registry once and stores it in your S3 bucket. From that point on, the registry serves the local copy directly — it stops proxying that module version entirely. Your Terraform runs use the exact artifact you pinned, regardless of whether the public registry is available or whether the upstream maintainer has yanked or replaced the release.
 
 This is particularly useful for:
 - Production environments where you need reproducible, hermetic builds
@@ -203,7 +203,7 @@ curl -X POST \
 ## 💡 Examples
 
 - [Basic](examples/basic) — Minimal deployment with required variables only
-- [Proxy Mode](examples/proxy-mode) — Portal with proxy mode enabled and allow/deny lists
+- [Proxy Mode](examples/proxy-mode) — Proxy mode enabled with allow/deny lists
 - [Complete](examples/complete) — All optional features configured
 
 ## 📥 Inputs
@@ -212,12 +212,12 @@ curl -X POST \
 |------|-------------|------|---------|:--------:|
 | `domain_name` | Custom domain name for the registry (e.g., `registry.example.com`). Must be a valid DNS hostname. This domain is used for the API Gateway custom domain and service discovery endpoint. | `string` | — | yes |
 | `certificate_arn` | ARN of a pre-existing ACM certificate covering the custom domain. Must be a valid ACM certificate ARN (e.g., `arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ef56-gh78-ij90-klmnopqrstuv`). | `string` | — | yes |
-| `proxy_enabled` | Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly to Portal are served. | `bool` | `false` | no |
+| `proxy_enabled` | Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly are served. | `bool` | `false` | no |
 | `proxy_allow_list` | Prefix expressions for modules eligible for proxying (e.g., `["hashicorp/", "myorg/vpc"]`). When the list is empty and proxy is enabled, all modules are eligible for proxying. Each entry is matched as a prefix against the module's namespace/name path. | `list(string)` | `[]` | no |
 | `proxy_deny_list` | Prefix expressions for modules excluded from proxying (e.g., `["internal/", "private/secrets"]`). Deny list takes precedence over allow list. Each entry is matched as a prefix against the module's namespace/name path. | `list(string)` | `[]` | no |
-| `s3_bucket_name` | Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named `portal-modules-{account_id}` using the current AWS account ID. | `string` | `""` | no |
-| `token_table_name` | Name of the DynamoDB table for storing API tokens. Defaults to `portal-tokens`. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account. | `string` | `"portal-tokens"` | no |
-| `master_token_secret_name` | Name of the Secrets Manager secret for the master token. Defaults to `prtl-master-token`. The master token is used for administrative operations such as creating and revoking API tokens. | `string` | `"prtl-master-token"` | no |
+| `s3_bucket_name` | Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named `se-registry-modules-{account_id}` using the current AWS account ID. | `string` | `""` | no |
+| `token_table_name` | Name of the DynamoDB table for storing API tokens. Defaults to `se-registry-tokens`. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account. | `string` | `"se-registry-tokens"` | no |
+| `master_token_secret_name` | Name of the Secrets Manager secret for the master token. Defaults to `se-registry-master-token`. The master token is used for administrative operations such as creating and revoking API tokens. | `string` | `"se-registry-master-token"` | no |
 
 ## 📤 Outputs
 
@@ -235,9 +235,9 @@ curl -X POST \
 
 ## 💰 Cost
 
-Portal is fully serverless, so you only pay for what you use. With low to moderate usage (a small team uploading and downloading modules during CI/CD), expect costs well under $1/month. The main cost drivers are:
+The registry is fully serverless, so you only pay for what you use. With low to moderate usage (a small team uploading and downloading modules during CI/CD), expect costs well under $1/month. The main cost drivers are:
 
-| Service | What Portal uses it for | Pricing model |
+| Service | What it's used for | Pricing model |
 |---------|------------------------|---------------|
 | API Gateway | REST API for all module and token operations | Per-request ($3.50 per million requests) |
 | Lambda | Request handling and authorization (two functions) | Per-request + duration (1M free requests/month) |

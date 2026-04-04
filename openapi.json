@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Portal Registry API",
+    "title": "SE Registry API",
     "description": "Terraform Module Registry API",
     "version": "5976c119dced"
   },

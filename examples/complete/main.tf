@@ -19,7 +19,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-module "portal" {
+module "registry" {
   source = "../.."
 
   domain_name     = "registry.example.com"
@@ -29,7 +29,7 @@ module "portal" {
   proxy_allow_list = ["hashicorp/", "myorg/"]
   proxy_deny_list  = ["internal/"]
 
-  s3_bucket_name           = "my-portal-modules"
-  token_table_name         = "my-portal-tokens"
-  master_token_secret_name = "my-portal-master-token"
+  s3_bucket_name           = "my-registry-modules"
+  token_table_name         = "my-registry-tokens"
+  master_token_secret_name = "my-registry-master-token"
 }

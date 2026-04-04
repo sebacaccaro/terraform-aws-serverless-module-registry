@@ -5,7 +5,7 @@
 data "aws_caller_identity" "current" {}
 
 resource "aws_s3_bucket" "modules" {
-  bucket = var.s3_bucket_name != "" ? var.s3_bucket_name : "portal-modules-${data.aws_caller_identity.current.account_id}"
+  bucket = var.s3_bucket_name != "" ? var.s3_bucket_name : "se-registry-modules-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket_versioning" "modules" {
@@ -16,7 +16,7 @@ resource "aws_s3_bucket_versioning" "modules" {
 }
 
 resource "aws_api_gateway_rest_api" "main" {
-  name = "portal-api"
+  name = "se-registry-api"
 
   binary_media_types = [
     "application/octet-stream",
@@ -67,7 +67,7 @@ resource "aws_api_gateway_stage" "main" {
 }
 
 resource "aws_iam_role" "apigw" {
-  name = "portal-apigw-role"
+  name = "se-registry-apigw-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -160,7 +160,7 @@ data "archive_file" "authorizer" {
 
 resource "aws_lambda_function" "authorizer" {
   filename         = data.archive_file.authorizer.output_path
-  function_name    = "portal-authorizer"
+  function_name    = "se-registry-authorizer"
   role             = aws_iam_role.authorizer.arn
   handler          = "authorizer.handler"
   runtime          = "python3.12"
@@ -176,7 +176,7 @@ resource "aws_lambda_function" "authorizer" {
 }
 
 resource "aws_iam_role" "authorizer" {
-  name = "portal-authorizer-role"
+  name = "se-registry-authorizer-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -214,7 +214,7 @@ resource "aws_iam_role_policy" "authorizer_access" {
 ## API Gateway Authorizer
 
 resource "aws_api_gateway_authorizer" "token" {
-  name                             = "portal-token-authorizer"
+  name                             = "se-registry-token-authorizer"
   rest_api_id                      = aws_api_gateway_rest_api.main.id
   type                             = "TOKEN"
   authorizer_uri                   = aws_lambda_function.authorizer.invoke_arn
@@ -246,7 +246,7 @@ data "archive_file" "lambda" {
 
 resource "aws_lambda_function" "api" {
   filename         = data.archive_file.lambda.output_path
-  function_name    = "portal-api-handler"
+  function_name    = "se-registry-api-handler"
   role             = aws_iam_role.lambda.arn
   handler          = "handler.handler"
   runtime          = "python3.12"
@@ -266,7 +266,7 @@ resource "aws_lambda_function" "api" {
 }
 
 resource "aws_iam_role" "lambda" {
-  name = "portal-lambda-role"
+  name = "se-registry-lambda-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
