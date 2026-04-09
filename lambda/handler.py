@@ -51,6 +51,11 @@ def _s3_key(namespace, name, system, version):
     return f"{namespace}/{name}/{system}/{version}/{name}-{system}-{version}.zip"
 
 
+def _s3_key_targz(namespace, name, system, version):
+    """Build the S3 key for a tar.gz module archive (used for pinned public registry modules)."""
+    return f"{namespace}/{name}/{system}/{version}/{name}-{system}-{version}.tar.gz"
+
+
 def _validate_module_params(params):
     """Validate namespace, name, and system path params. Raises ValidationError."""
     validate_path_param("namespace", params["namespace"])
@@ -88,6 +93,9 @@ def download_version(event, params):
     _validate_module_params(params)
     validate_semver(params["version"])
     key = _s3_key(params["namespace"], params["name"], params["system"], params["version"])
+    targz_key = _s3_key_targz(params["namespace"], params["name"], params["system"], params["version"])
+    if s3_client.head_object(MODULES_BUCKET, targz_key):
+        key = targz_key
     if not s3_client.head_object(MODULES_BUCKET, key):
         # Check if any local versions exist for this module (proxy blocking)
         prefix = f"{params['namespace']}/{params['name']}/{params['system']}/"
@@ -156,8 +164,8 @@ def cache_version(event, params):
     system = params["system"]
     version = params["version"]
 
-    key = _s3_key(namespace, name, system, version)
-    if s3_client.head_object(MODULES_BUCKET, key):
+    key = _s3_key_targz(namespace, name, system, version)
+    if s3_client.head_object(MODULES_BUCKET, key) or s3_client.head_object(MODULES_BUCKET, _s3_key(namespace, name, system, version)):
         return _error_response(
             409,
             "conflict",
