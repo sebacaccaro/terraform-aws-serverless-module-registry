@@ -88,19 +88,25 @@ Terraform CLI uses the `/.well-known/terraform.json` service discovery endpoint 
 
 #### Token Permission Model
 
-The registry uses three token permission levels:
+The registry uses three token tiers. Each tier inherits the permissions of the ones below it:
 
-| Token Type | Upload Modules | Download Modules | Manage Tokens |
-| ---------- | :------------: | :--------------: | :-----------: |
-| master     |       ✓        |        ✓         |       ✓       |
-| uploader   |       ✓        |        ✓         |               |
-| downloader |                |        ✓         |               |
+| Token Type | Download / List Modules | Upload Modules | Pin Modules | Manage Tokens |
+| ---------- | :---------------------: | :------------: | :---------: | :-----------: |
+| master     |            ✓            |       ✓        |      ✓      |       ✓       |
+| uploader   |            ✓            |       ✓        |             |               |
+| downloader |            ✓            |                |             |               |
 
-- The **master** token is generated automatically during deployment and stored in AWS Secrets Manager. It has full access to all operations including token management.
-- **Uploader** tokens can upload new module versions and download existing ones.
-- **Downloader** tokens can only download modules. Use these for CI/CD pipelines and Terraform CLI credentials.
+**master** — Auto-generated at deploy time and stored in AWS Secrets Manager (see the `master_token_secret_name` input). This is the only token that can create/list/revoke other tokens and pin public modules. Treat it like a root credential: use it for initial setup and administrative tasks, not for day-to-day operations.
 
-Create tokens using the master token:
+**uploader** — Can push new module versions (`PUT /v1/modules/...`) and also download/list them. Ideal for CI/CD pipelines that publish modules after a successful build.
+
+**downloader** — Read-only access: list available versions and download module archives. This is the token you should put in `.terraformrc` or `TF_TOKEN_` environment variables for developers and for pipelines that only consume modules.
+
+#### Managing Tokens
+
+All token management operations require the master token.
+
+Create a token:
 
 ```bash
 curl -X POST \
@@ -108,6 +114,23 @@ curl -X POST \
   -H "Authorization: Bearer your-master-token" \
   -H "Content-Type: application/json" \
   -d '{"name": "ci-downloader", "permission": "downloader"}'
+```
+
+The response includes the token value. Store it securely — it cannot be retrieved again.
+
+List existing tokens (token values are not returned):
+
+```bash
+curl "https://registry.example.com/v1/tokens" \
+  -H "Authorization: Bearer your-master-token"
+```
+
+Revoke a token by name:
+
+```bash
+curl -X DELETE \
+  "https://registry.example.com/v1/tokens/ci-downloader" \
+  -H "Authorization: Bearer your-master-token"
 ```
 
 ### 🔀 Proxy Mode
@@ -173,34 +196,77 @@ The path follows the format `/v1/pins/{namespace}/{name}/{system}/{version}`. Af
 
 ## 📡 API Reference
 
-The complete API specification is available in the bundled [`openapi.json`](openapi.json) file. This OpenAPI/Swagger document is the authoritative reference for all endpoints, request/response schemas, and error codes.
+All endpoints (except service discovery) require a `Authorization: Bearer <token>` header. The complete OpenAPI specification is available in [`openapi.json`](openapi.json).
 
-The API is organized into four categories:
+Module paths use the format `{namespace}/{name}/{system}` where each segment is 1–64 lowercase alphanumeric characters, hyphens, or underscores. Versions must be valid semver (`X.Y.Z`).
 
-- **Module operations** — Upload, download, list, and query module versions (`/v1/modules/...`)
-- **Token management** — Create, list, and revoke API tokens (`/v1/tokens/...`)
-- **Module pinning** — Pin public registry modules locally (`/v1/pins/...`)
-- **Service discovery** — Terraform CLI service discovery endpoint (`/.well-known/terraform.json`)
+### Service Discovery
 
-All API requests (except service discovery) require a Bearer token in the `Authorization` header. See the [Token Permission Model](#token-permission-model) section for details on which token types authorize which operations.
+| | |
+|---|---|
+| `GET /.well-known/terraform.json` | No auth required |
 
-Quick-start examples:
+Returns the service discovery document that Terraform CLI uses to locate the module API. You don't call this directly — Terraform handles it automatically when you use your registry domain as a module source.
+
+### Modules
+
+| Endpoint | Method | Required Token | Description |
+|---|---|---|---|
+| `/v1/modules/{ns}/{name}/{system}/versions` | `GET` | downloader+ | List all versions of a module |
+| `/v1/modules/{ns}/{name}/{system}/{version}/download` | `GET` | downloader+ | Download a module archive |
+| `/v1/modules/{ns}/{name}/{system}/{version}` | `PUT` | uploader+ | Upload a new module version |
+
+**Upload a module version:**
 
 ```bash
-# Upload a module
 curl -X PUT \
   "https://registry.example.com/v1/modules/myorg/vpc/aws/1.0.0" \
   -H "Authorization: Bearer your-uploader-token" \
   -H "Content-Type: application/octet-stream" \
   --data-binary @module.tar.gz
-
-# Create a downloader token
-curl -X POST \
-  "https://registry.example.com/v1/tokens" \
-  -H "Authorization: Bearer your-master-token" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "ci-reader", "permission": "downloader"}'
 ```
+
+Returns `201` on success, `409` if the version already exists. The body must be a `.tar.gz` or `.zip` archive.
+
+**List versions:**
+
+```bash
+curl "https://registry.example.com/v1/modules/myorg/vpc/aws/versions" \
+  -H "Authorization: Bearer your-downloader-token"
+```
+
+**Download a module:**
+
+```bash
+curl -I "https://registry.example.com/v1/modules/myorg/vpc/aws/1.0.0/download" \
+  -H "Authorization: Bearer your-downloader-token"
+```
+
+Returns `204` with an `X-Terraform-Get` header containing a presigned S3 URL. Terraform CLI follows this automatically — you only need this for manual downloads.
+
+### Tokens
+
+| Endpoint | Method | Required Token | Description |
+|---|---|---|---|
+| `/v1/tokens` | `POST` | master | Create a new token |
+| `/v1/tokens` | `GET` | master | List all tokens (values are not returned) |
+| `/v1/tokens/{token_name}` | `DELETE` | master | Revoke a token |
+
+See [Managing Tokens](#managing-tokens) for examples.
+
+### Pins
+
+| Endpoint | Method | Required Token | Description |
+|---|---|---|---|
+| `/v1/pins/{ns}/{name}/{system}/{version}` | `POST` | master | Pin a public module version locally |
+
+```bash
+curl -X POST \
+  "https://registry.example.com/v1/pins/hashicorp/consul/aws/0.12.0" \
+  -H "Authorization: Bearer your-master-token"
+```
+
+Returns `201` on success, `404` if the module doesn't exist on the public registry, `409` if already pinned locally. Requires proxy mode to be enabled.
 
 ## 💡 Examples
 
