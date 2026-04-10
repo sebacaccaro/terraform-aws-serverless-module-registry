@@ -37,7 +37,6 @@ module "registry" {
 
 After applying, create a DNS CNAME or alias record pointing your `domain_name` to the `custom_domain_regional_domain_name` output.
 
-
 ## 📖 Use Cases
 
 ### 🔒 Private Registry
@@ -53,6 +52,12 @@ credentials "registry.example.com" {
 ```
 
 Replace `registry.example.com` with your custom domain and `your-api-token` with a valid downloader or uploader token.
+
+Alternatively you can export the `TF_TOKEN_` environment variable. The variable name is built from the hostname by replacing dots with underscores and hyphens with double underscores. For example, if your registry domain is `my-registry.example.com`:
+
+```bash
+export TF_TOKEN_my__registry_example_com="your-api-token"
+```
 
 #### Uploading a Module
 
@@ -85,11 +90,11 @@ Terraform CLI uses the `/.well-known/terraform.json` service discovery endpoint 
 
 The registry uses three token permission levels:
 
-| Token Type   | Upload Modules | Download Modules | Manage Tokens |
-|-------------|:-:|:-:|:-:|
-| master      | ✓ | ✓ | ✓ |
-| uploader    | ✓ | ✓ |   |
-| downloader  |   | ✓ |   |
+| Token Type | Upload Modules | Download Modules | Manage Tokens |
+| ---------- | :------------: | :--------------: | :-----------: |
+| master     |       ✓        |        ✓         |       ✓       |
+| uploader   |       ✓        |        ✓         |               |
+| downloader |                |        ✓         |               |
 
 - The **master** token is generated automatically during deployment and stored in AWS Secrets Manager. It has full access to all operations including token management.
 - **Uploader** tokens can upload new module versions and download existing ones.
@@ -104,7 +109,6 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"name": "ci-downloader", "permission": "downloader"}'
 ```
-
 
 ### 🔀 Proxy Mode
 
@@ -145,7 +149,6 @@ This blocks proxying for any module under the `internal` namespace and the speci
 
 > The deny list takes precedence over the allow list. If a module matches both lists, it will not be proxied.
 
-
 ### 📌 Module Pinning
 
 When proxy mode is enabled, module downloads are forwarded to the public Terraform Registry on every request. That means your `terraform apply` depends on the public registry being available and serving the same artifact every time. Module pinning removes that dependency.
@@ -153,6 +156,7 @@ When proxy mode is enabled, module downloads are forwarded to the public Terrafo
 Pinning a module version downloads the archive from the public registry once and stores it in your S3 bucket. From that point on, the registry serves the local copy directly — it stops proxying that module version entirely. Your Terraform runs use the exact artifact you pinned, regardless of whether the public registry is available or whether the upstream maintainer has yanked or replaced the release.
 
 This is particularly useful for:
+
 - Production environments where you need reproducible, hermetic builds
 - Air-gapped or restricted networks that can't reach the public registry at apply time
 - Locking down a known-good version of a third-party module before rolling it out
@@ -166,7 +170,6 @@ curl -X POST \
 ```
 
 The path follows the format `/v1/pins/{namespace}/{name}/{system}/{version}`. After pinning, any `terraform init` that requests `hashicorp/consul/aws` version `0.12.0` through your registry will get the locally stored copy.
-
 
 ## 📡 API Reference
 
@@ -199,7 +202,6 @@ curl -X POST \
   -d '{"name": "ci-reader", "permission": "downloader"}'
 ```
 
-
 ## 💡 Examples
 
 - [Basic](examples/basic) — Minimal deployment with required variables only
@@ -208,42 +210,42 @@ curl -X POST \
 
 ## 📥 Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| `domain_name` | Custom domain name for the registry (e.g., `registry.example.com`). Must be a valid DNS hostname. This domain is used for the API Gateway custom domain and service discovery endpoint. | `string` | — | yes |
-| `certificate_arn` | ARN of a pre-existing ACM certificate covering the custom domain. Must be a valid ACM certificate ARN (e.g., `arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ef56-gh78-ij90-klmnopqrstuv`). | `string` | — | yes |
-| `proxy_enabled` | Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly are served. | `bool` | `false` | no |
-| `proxy_allow_list` | Prefix expressions for modules eligible for proxying (e.g., `["hashicorp/", "myorg/vpc"]`). When the list is empty and proxy is enabled, all modules are eligible for proxying. Each entry is matched as a prefix against the module's namespace/name path. | `list(string)` | `[]` | no |
-| `proxy_deny_list` | Prefix expressions for modules excluded from proxying (e.g., `["internal/", "private/secrets"]`). Deny list takes precedence over allow list. Each entry is matched as a prefix against the module's namespace/name path. | `list(string)` | `[]` | no |
-| `s3_bucket_name` | Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named `se-registry-modules-{account_id}` using the current AWS account ID. | `string` | `""` | no |
-| `token_table_name` | Name of the DynamoDB table for storing API tokens. Defaults to `se-registry-tokens`. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account. | `string` | `"se-registry-tokens"` | no |
-| `master_token_secret_name` | Name of the Secrets Manager secret for the master token. Defaults to `se-registry-master-token`. The master token is used for administrative operations such as creating and revoking API tokens. | `string` | `"se-registry-master-token"` | no |
+| Name                       | Description                                                                                                                                                                                                                                                 | Type           | Default                      | Required |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ---------------------------- | :------: |
+| `domain_name`              | Custom domain name for the registry (e.g., `registry.example.com`). Must be a valid DNS hostname. This domain is used for the API Gateway custom domain and service discovery endpoint.                                                                     | `string`       | —                            |   yes    |
+| `certificate_arn`          | ARN of a pre-existing ACM certificate covering the custom domain. Must be a valid ACM certificate ARN (e.g., `arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ef56-gh78-ij90-klmnopqrstuv`).                                                        | `string`       | —                            |   yes    |
+| `proxy_enabled`            | Enable proxy fallback to the public Terraform Registry when a module is not found locally. When set to false (the default), only modules uploaded directly are served.                                                                                      | `bool`         | `false`                      |    no    |
+| `proxy_allow_list`         | Prefix expressions for modules eligible for proxying (e.g., `["hashicorp/", "myorg/vpc"]`). When the list is empty and proxy is enabled, all modules are eligible for proxying. Each entry is matched as a prefix against the module's namespace/name path. | `list(string)` | `[]`                         |    no    |
+| `proxy_deny_list`          | Prefix expressions for modules excluded from proxying (e.g., `["internal/", "private/secrets"]`). Deny list takes precedence over allow list. Each entry is matched as a prefix against the module's namespace/name path.                                   | `list(string)` | `[]`                         |    no    |
+| `s3_bucket_name`           | Override the default S3 bucket name for storing module packages. When empty (the default), the bucket is named `se-registry-modules-{account_id}` using the current AWS account ID.                                                                         | `string`       | `""`                         |    no    |
+| `token_table_name`         | Name of the DynamoDB table for storing API tokens. Defaults to `se-registry-tokens`. Change this if you need to avoid naming conflicts with existing DynamoDB tables in your account.                                                                       | `string`       | `"se-registry-tokens"`       |    no    |
+| `master_token_secret_name` | Name of the Secrets Manager secret for the master token. Defaults to `se-registry-master-token`. The master token is used for administrative operations such as creating and revoking API tokens.                                                           | `string`       | `"se-registry-master-token"` |    no    |
 
 ## 📤 Outputs
 
-| Name | Description |
-|------|-------------|
-| `api_endpoint` | API Gateway stage invoke URL |
-| `api_id` | API Gateway REST API ID |
-| `s3_bucket_name` | Name of the S3 modules bucket |
-| `s3_bucket_arn` | ARN of the S3 modules bucket |
-| `dynamodb_table_name` | Name of the DynamoDB tokens table |
-| `master_token_secret_arn` | ARN of the Secrets Manager master token secret |
-| `api_gateway_domain_name` | The execute-api regional hostname of the REST API |
-| `custom_domain_regional_domain_name` | Regional domain name of the custom domain for DNS CNAME/alias targeting |
-| `custom_domain_regional_zone_id` | Regional hosted zone ID of the custom domain for Route 53 alias targeting |
+| Name                                 | Description                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `api_endpoint`                       | API Gateway stage invoke URL                                              |
+| `api_id`                             | API Gateway REST API ID                                                   |
+| `s3_bucket_name`                     | Name of the S3 modules bucket                                             |
+| `s3_bucket_arn`                      | ARN of the S3 modules bucket                                              |
+| `dynamodb_table_name`                | Name of the DynamoDB tokens table                                         |
+| `master_token_secret_arn`            | ARN of the Secrets Manager master token secret                            |
+| `api_gateway_domain_name`            | The execute-api regional hostname of the REST API                         |
+| `custom_domain_regional_domain_name` | Regional domain name of the custom domain for DNS CNAME/alias targeting   |
+| `custom_domain_regional_zone_id`     | Regional hosted zone ID of the custom domain for Route 53 alias targeting |
 
 ## 💰 Cost
 
 The registry is fully serverless, so you only pay for what you use. With low to moderate usage (a small team uploading and downloading modules during CI/CD), expect costs well under $1/month. The main cost drivers are:
 
-| Service | What it's used for | Pricing model |
-|---------|------------------------|---------------|
-| API Gateway | REST API for all module and token operations | Per-request ($3.50 per million requests) |
-| Lambda | Request handling and authorization (two functions) | Per-request + duration (1M free requests/month) |
-| S3 | Module archive storage | Storage ($0.023/GB/month) + requests |
-| DynamoDB | Token storage (on-demand) | Per-request (25 GB + 25 WCU/RCU free tier) |
-| Secrets Manager | Master token storage (one secret) | $0.40/secret/month + $0.05 per 10K API calls |
+| Service         | What it's used for                                 | Pricing model                                   |
+| --------------- | -------------------------------------------------- | ----------------------------------------------- |
+| API Gateway     | REST API for all module and token operations       | Per-request ($3.50 per million requests)        |
+| Lambda          | Request handling and authorization (two functions) | Per-request + duration (1M free requests/month) |
+| S3              | Module archive storage                             | Storage ($0.023/GB/month) + requests            |
+| DynamoDB        | Token storage (on-demand)                          | Per-request (25 GB + 25 WCU/RCU free tier)      |
+| Secrets Manager | Master token storage (one secret)                  | $0.40/secret/month + $0.05 per 10K API calls    |
 
 At rest with no traffic, the only fixed cost is the single Secrets Manager secret (~$0.40/month). Everything else scales to zero. For a team running a few hundred `terraform init` calls per day, total cost typically stays under $5/month.
 
