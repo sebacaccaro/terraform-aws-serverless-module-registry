@@ -7,6 +7,10 @@
 
 A private, fully serverless Terraform module registry for AWS. It lets you host, distribute, and manage Terraform modules behind your own domain with token-based authentication. It can also proxy requests to the public Terraform Registry and pin specific module versions locally for reproducible, air-gap-friendly builds.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sebacaccaro/public_files/main/terraform-module-article/Diagrams/img/Arch.png" alt="Architecture diagram">
+</p>
+
 ## ✨ Features
 
 - 📦 Private module hosting with versioned uploads and S3-backed storage
